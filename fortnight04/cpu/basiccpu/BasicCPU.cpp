@@ -136,8 +136,12 @@ int BasicCPU::ID()
 		// implementar os DOIS GRUPOS A SEGUIR
 		//
 		// 101x Loads and Stores on page C4-246
-
-
+		case 0x08000000: //x = 0, x = 0;
+		case 0x0C000000: //x = 0, x = 1;
+		case 0x18000000: //x = 1, x = 0;
+		case 0x1C000000: //x = 1, x = 1;
+			return decodeLoadStore();
+			break;
 		// 101x Branches, Exception Generating and System instructions on page C4-237
 		
 		default:
@@ -233,7 +237,6 @@ int BasicCPU::decodeBranches() {
  */
 int BasicCPU::decodeLoadStore() {
 	unsigned int n,d;
-	// instrução não implementada
 	switch (IR & 0xFFC00000) { 
 		case 0xB9800000://LDRSW C6.2.131 Immediate (Unsigned offset) 913
 			// como é escrita em 64 bits, não há problema em decodificar
@@ -290,6 +293,9 @@ int BasicCPU::decodeLoadStore() {
 		case 0xB9000000://STR C6.2.257 Unsigned offset 1135
 			//size = 10, 32 bit
 			n = (IR & 0x000003E0) >> 5;
+			//if (n == 31) {
+			//	A = ZR;
+			//}
 			if (n == 31) {
 				A = SP;
 			}
@@ -300,6 +306,9 @@ int BasicCPU::decodeLoadStore() {
 			B = ((IR & 0x003FFC00) >> 10) << 2; //offset = imm12 << scale. scale == size
 
 			d = IR & 0x0000001F;
+			//if (n == 31) {
+			//	Rd = ZR;
+			//}
 			if (d == 31) {
 				Rd = &SP;
 			}
