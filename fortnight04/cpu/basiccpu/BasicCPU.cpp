@@ -142,8 +142,12 @@ int BasicCPU::ID()
 		case 0x1C000000: //x = 1, x = 1;
 			return decodeLoadStore();
 			break;
+
 		// 101x Branches, Exception Generating and System instructions on page C4-237
-		
+		case 0x14000000:
+		case 0x16000000:
+            		return decodeBranches();
+            		break;
 		default:
 			return 1; // instrução não implementada
 	}
@@ -207,6 +211,44 @@ int BasicCPU::decodeDataProcImm() {
 			MemtoReg = false;
 			
 			return 0;
+
+		case 0x71000000:		
+			//CMP(immediate) - 64-bit variant on page C6-778
+			
+			if (IR & 0x00400000) return 1; // sh = 1 nÃ£o implementado
+			
+			// ler A e B
+			n = (IR & 0x000003E0) >> 5;
+			if (n == 31) {
+				A = SP;
+			} else {
+				A = getX(n); // 64-bit variant
+			}
+			imm = (IR & 0x003FFC00) >> 10;
+			B = imm;
+			
+			// registrador destino
+			d = (IR & 0x0000001F);
+			if (d == 31) {
+				Rd = &SP;
+			} else {
+				Rd = &(R[d]);
+			}
+			
+			// atribuir ALUctrl
+			ALUctrl = ALUctrlFlag::SUB;
+			
+			// atribuir MEMctrl
+			MEMctrl = MEMctrlFlag::MEM_NONE;
+			
+			// atribuir WBctrl
+			WBctrl = WBctrlFlag::WB_NONE;
+			
+			// atribuir MemtoReg
+			MemtoReg = false;
+			
+			return 0;
+
 		default:
 			// instruÃ§Ã£o nÃ£o implementada
 			return 1;
@@ -224,7 +266,43 @@ int BasicCPU::decodeDataProcImm() {
  *		   1: se a instrução não estiver implementada.
  */
 int BasicCPU::decodeBranches() {
-	// instrução não implementada
+
+	//DONE
+	//instrução não implementada
+	//declaração do imm26 valor imm6 na página C6-722
+	int32_t imm26 = (IR & 0x03FFFFFF);
+	//switch para pegar o branch
+	switch (IR & 0xFC000000) { //zera tudo que eu não quero deixando só os que quero testar
+		//000101 unconditional branch to a label on page C6-722 - verificação
+		case 0x14000000: //aplico a mascara pra ver se o que eu peguei é o que eu esperava
+			//exercício
+			// eliminação dos zeros à esquerda, casting explícito para uint64_t e retorno dos 26 bits à posição original, mas com 2 bits 0 à direita
+			B = ((int64_t)(imm26 << 6)) >> 4;
+			//declara reg a
+			A = PC; //salvo o endereço da instrução (PC) em A
+			//declara reg d
+			Rd = &PC; // salvo o endereço da instrução (PC) no registrador de destino
+			
+			// Atribuição das Flags
+
+			// atribuir ALUctrl
+			//estagio de execução
+			ALUctrl = ALUctrlFlag::ADD;//adição
+			// atribuir MEMctrl
+			//estágio de acesso a memoria
+			MEMctrl = MEMctrlFlag::MEM_NONE; //none pq nao acesso a memoria
+			// atribuir WBctrl
+			//estagio de write back
+			WBctrl = WBctrlFlag::RegWrite; //onde eu vou escrever a informação, que é no registrador, por isso o "RegWrite"
+			// atribuir MemtoReg
+			//segunda pleg para o estagio WB
+			MemtoReg=false;// como a info não vem da memoria é falso
+			
+			return 0;
+		default:
+			return 1;
+
+	}
 	return 1;
 }
 
