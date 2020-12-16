@@ -273,6 +273,7 @@ int BasicCPU::decodeBranches() {
 	int32_t imm26 = (IR & 0x03FFFFFF);
 	int32_t imm19 = (IR & 0x00FFFFE0);
 	int32_t condicao;
+	unsigned int n;
 	//switch para pegar o branch
 	switch (IR & 0xFC000000) { //zera tudo que eu não quero deixando só os que quero testar
 		//000101 unconditional branch to a label on page C6-722 - verificação
@@ -332,8 +333,44 @@ int BasicCPU::decodeBranches() {
 			}
 		}			
 				
-
 	}
+	
+	switch (IR & 0xFFFFFC1F) { 
+		
+		case 0xD65F0000: 
+			//C6.2.207 RET on page 1053
+			n = (((IR & 0x000003E0) << 21)>>26);
+			if(n==0){
+				A=getX(30);
+			}
+			else{
+			A = getX(n);
+			
+			B = ZR; 
+			
+			Rd = &PC;
+				// salvo o endereço da instrução (PC) no registrador de destino
+			
+			// Atribuição das Flags
+
+			// atribuir ALUctrl
+			//estagio de execução
+			ALUctrl = ALUctrlFlag::ADD;//adição
+			// atribuir MEMctrl
+			//estágio de acesso a memoria
+			MEMctrl = MEMctrlFlag::MEM_NONE; //none pq nao acesso a memoria
+			// atribuir WBctrl
+			//estagio de write back
+			WBctrl = WBctrlFlag::RegWrite; //onde eu vou escrever a informação, que é no registrador, por isso o "RegWrite"
+			// atribuir MemtoReg
+			//segunda pleg para o estagio WB
+			MemtoReg=false;// como a info não vem da memoria é falso
+			
+			return 0;
+			}		
+			
+}
+	
 	return 1;
 }
 
