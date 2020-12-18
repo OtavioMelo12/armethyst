@@ -76,7 +76,7 @@ int BasicCPU::run(uint64_t startAddress)
  */
 void BasicCPU::IF()
 {
-	IR = memory->readInstruction32(PC);
+	IR = memory->readInstruction32(PC); //Acessa a memória de instruções e le o código de 32bits da instrução no endereço de PC.
 };
 
 /**
@@ -85,18 +85,11 @@ void BasicCPU::IF()
  * Decodifica o registrador IR, lê registradores do banco de registradores
  * e escreve em registradores auxiliares o que será usado por estágios
  * posteriores.
- *
- * Escreve A, B e ALUctrl para o estágio EXI
- * ATIVIDADE FUTURA: escreve registradores para os estágios EXF, MEM e WB.
- *
  * Retorna 0: se executou corretamente e
  *		   1: se a instrução não estiver implementada.
  */
 int BasicCPU::ID()
 {
-	// TODO
-	// Acrescente os cases no switch já iniciado, para detectar o grupo
-	//
 	// Deve-se detectar em IR o grupo da qual a instrução faz parte e
 	//		chamar a função 'decodeGROUP()' para o grupo detectado,
 	// 		onde GROUP é o sufixo do nome da função que decodifica as
@@ -117,24 +110,21 @@ int BasicCPU::ID()
 		case 0x12000000: // x = 1
 			return decodeDataProcImm();
 			break;
+		
+		//ADD
 		// x101 Data Processing -- Register on page C4-278
 		case 0x0A000000: 
 		case 0x1A000000:
 			return decodeDataProcReg();
 			break;
 		
-		// TODO
-		// implementar o GRUPO A SEGUIR
-		//
+		//FADD
 		// x111 Data Processing -- Scalar Floating-Point and Advanced SIMD on page C4-288
 		case 0x1e000000: //x = 1
 		case 0x0e000000: //x = 0
 			return decodeDataProcFloat();
 			break;
 		
-		// ATIVIDADE FUTURA
-		// implementar os DOIS GRUPOS A SEGUIR
-		//
 		// x1x0 Loads and Stores on page C4-246
 		case 0x08000000: //x = 0, x = 0;
 		case 0x0C000000: //x = 0, x = 1;
@@ -259,8 +249,8 @@ int BasicCPU::decodeDataProcImm() {
 }
 
 /**
- * ATIVIDADE FUTURA: Decodifica instruções do grupo
- * 		101x Branches, Exception Generating and System instructions
+ *  Decodifica instruções do grupo
+ * 101x Branches, Exception Generating and System instructions
  *
  * Retorna 0: se executou corretamente e
  *		   1: se a instrução não estiver implementada.
@@ -310,7 +300,7 @@ int BasicCPU::decodeBranches() {
 			if(condicao == 13){
 				if(not(Z_flag == 0 && N_flag == V_flag)){
 					A = PC;
-					B = (((int64_t)(imm19 << 8)) >> 13) << 2;
+					B = (((int64_t)(imm19 << 8) >> 13)) << 2;
 					Rd = &PC;
 			
 			// atribuir ALUctrl
@@ -338,8 +328,8 @@ int BasicCPU::decodeBranches() {
 	switch (IR & 0xFFFFFC1F) { 
 		
 		case 0xD65F0000: 
-			//C6.2.207 RET on page 1053
-			n = (((IR & 0x000003E0) << 21)>>26);
+			// RET on page 1053
+			n = (((IR & 0x000003E0) << 21)>>26); 
 			if(n==0){
 				A=getX(30);
 			}
@@ -349,19 +339,22 @@ int BasicCPU::decodeBranches() {
 			B = ZR; 
 			
 			Rd = &PC;
-				// salvo o endereço da instrução (PC) no registrador de destino
+			// salvo o endereço da instrução (PC) no registrador de destino
 			
 			// Atribuição das Flags
 
 			// atribuir ALUctrl
 			//estagio de execução
-			ALUctrl = ALUctrlFlag::ADD;//adição
+			ALUctrl = ALUctrlFlag::ADD; //adição
+
 			// atribuir MEMctrl
 			//estágio de acesso a memoria
 			MEMctrl = MEMctrlFlag::MEM_NONE; //none pq nao acesso a memoria
+			
 			// atribuir WBctrl
 			//estagio de write back
 			WBctrl = WBctrlFlag::RegWrite; //onde eu vou escrever a informação, que é no registrador, por isso o "RegWrite"
+			
 			// atribuir MemtoReg
 			//segunda pleg para o estagio WB
 			MemtoReg=false;// como a info não vem da memoria é falso
@@ -398,14 +391,18 @@ int BasicCPU::decodeLoadStore() {
 			
 			// atribuir ALUctrl
 			ALUctrl = ALUctrlFlag::ADD;//adição
+
 			// atribuir MEMctrl
 			MEMctrl = MEMctrlFlag::READ64;
+
 			// atribuir WBctrl
 			WBctrl = WBctrlFlag::RegWrite;
+
 			// atribuir MemtoReg
 			MemtoReg=true;
 			
 			return 0;
+
 		case 0xB9400000://LDR C6.2.119 Immediate (Unsigned offset) 886 
 		//32 bits
 			n = (IR & 0x000003E0) >> 5;
@@ -428,14 +425,18 @@ int BasicCPU::decodeLoadStore() {
 			
 			// atribuir ALUctrl
 			ALUctrl = ALUctrlFlag::ADD;//adição
+
 			// atribuir MEMctrl
 			MEMctrl = MEMctrlFlag::READ32;
+
 			// atribuir WBctrl
 			WBctrl = WBctrlFlag::RegWrite;
+
 			// atribuir MemtoReg
 			MemtoReg=true;
 			
 			return 0;
+
 		case 0xB9000000://STR C6.2.257 Unsigned offset 1135
 			//size = 10, 32 bit
 			n = (IR & 0x000003E0) >> 5;
@@ -458,15 +459,19 @@ int BasicCPU::decodeLoadStore() {
 			
 			// atribuir ALUctrl
 			ALUctrl = ALUctrlFlag::ADD;//adição
+
 			// atribuir MEMctrl
 			MEMctrl = MEMctrlFlag::WRITE32;
+
 			// atribuir WBctrl
 			WBctrl = WBctrlFlag::WB_NONE;
+
 			// atribuir MemtoReg
 			MemtoReg=false;
 			
 			return 0;
 	}
+
 	switch (IR & 0xFFE0FC00) {
 		//1111 1111 1110 0000 1111 1100 0000 0000
 		case 0xB8607800://LDR (Register) C6.2.121 891
@@ -491,10 +496,13 @@ int BasicCPU::decodeLoadStore() {
 
 			// atribuir ALUctrl
 			ALUctrl = ALUctrlFlag::ADD;//adicao
+
 			// atribuir MEMctrl
 			MEMctrl = MEMctrlFlag::READ32;
+
 			// atribuir WBctrl
 			WBctrl = WBctrlFlag::RegWrite;
+
 			// atribuir MemtoReg
 			MemtoReg=true;
 			
@@ -513,10 +521,6 @@ int BasicCPU::decodeLoadStore() {
  *		   1: se a instrução não estiver implementada.
  */
 int BasicCPU::decodeDataProcReg() {
-	// TODO
-	// acrescentar switches e cases Ã  medida em que forem sendo
-	// adicionadas implementaÃ§Ãµes de instruÃ§Ãµes de processamento
-	// de dados por registrador.
 
 	unsigned int n,m,shift,imm6;
 	
@@ -555,21 +559,21 @@ int BasicCPU::decodeDataProcReg() {
 			// atribuir ALUctrl
 			ALUctrl = ALUctrlFlag::ADD;
 			
-			// ATIVIDADE FUTURA:
-			// implementar informaÃ§Ãµes para os estÃ¡gios MEM e WB.
-				MEMctrl = MEMctrlFlag::MEM_NONE;
-				WBctrl = WBctrlFlag::RegWrite;
-				MemtoReg=false;
-				unsigned int d = (IR & 0x0000001F);
-				if (d == 31)
-				{
-					Rd = &SP;
-				}
-				else
-				{
-					Rd = &(R[d]);
-				}
-			return 0;
+			MEMctrl = MEMctrlFlag::MEM_NONE;
+
+			WBctrl = WBctrlFlag::RegWrite;
+
+			MemtoReg=false;
+			unsigned int d = (IR & 0x0000001F);
+			if (d == 31)
+			{
+				Rd = &SP;
+			}
+			else
+			{
+				Rd = &(R[d]);
+			}
+		return 0;
 	}
 		
 	// instruçao não implementada
@@ -587,16 +591,6 @@ int BasicCPU::decodeDataProcReg() {
 int BasicCPU::decodeDataProcFloat() {
 	unsigned int n,m,d;
 
-	// TODO
-	// Acrescente os cases no switch já iniciado, para implementar a
-	// decodificação das instruções a seguir:
-	//		1. Em fpops.S
-	//			1.1 'fadd s1, s1, s0'
-	//				linha 58 de fpops.S, endereço 0xBC de txt_fpops.o.txt
-	//				Seção C7.2.43 FADD (scalar), p. 1346 do manual.
-	//
-	// Verifique que ALUctrlFlag já tem declarados os tipos de
-	// operação executadas pelas instruções acima.
 	switch (IR & 0xFF20FC00)
 	{
 		case 0x1E203800:
@@ -687,14 +681,6 @@ int BasicCPU::decodeDataProcFloat() {
  */
 int BasicCPU::EXI()
 {
-	// TODO
-	// Acrescente os cases no switch já iniciado, para implementar a
-	// execução das instruções a seguir:
-	//		1. Em isummation.S:
-	//			'add w1, w1, w0' (linha 43 do .S endereço 0x68)
-	//
-	// Verifique que ALUctrlFlag já tem declarados os tipos de
-	// operação executadas pelas instruções acima.
 	switch (ALUctrl)
 	{
 		case ALUctrlFlag::SUB:
@@ -725,15 +711,6 @@ int BasicCPU::EXI()
  */
 int BasicCPU::EXF()
 {
-	// TODO
-	// Acrescente os cases no switch já iniciado, para implementar a
-	// execução das instruções a seguir:
-	//		1. Em fpops.S:
-	//			'fadd	s0, s0, s0' (linha 42 do .S endereço 0x80)
-	//
-	// Verifique que ALUctrlFlag já tem declarados os tipos de
-	// operação executadas pelas instruções acima.
-
 	if (fpOp == FPOpFlag::FP_REG_32) {
 		// 32-bit implementation
 		float fA = Util::uint64LowAsFloat(A);
@@ -765,10 +742,6 @@ int BasicCPU::EXF()
  */
 int BasicCPU::MEM()
 {
-	// TODO
-	// Implementar o switch (MEMctrl) case MEMctrlFlag::XXX com as
-	// chamadas aos métodos corretos que implementam cada caso de
-	// acesso à memória de dados.
 	switch (MEMctrl) {
 		case MEMctrlFlag::READ32:
 			MDR = memory->readData32(ALUout);
@@ -798,12 +771,7 @@ int BasicCPU::MEM()
  * 				estiver implementado.
  */
 int BasicCPU::WB()
-{
-	// TODO
-	// Implementar o switch (WBctrl) case WBctrlFlag::XXX com as
-	// atribuições corretas do registrador destino, quando houver, ou
-	// return 0 no caso WBctrlFlag::WB_NONE.
-	
+{	
    switch (WBctrl) {
         case WBctrlFlag::WB_NONE:
             return 0;
